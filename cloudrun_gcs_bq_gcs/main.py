@@ -1,8 +1,4 @@
-FROM python:3.11-slim
-
-WORKDIR /app
-
-COPY requiimport os
+import os
 import csv
 import io
 from flask import Flask, request
