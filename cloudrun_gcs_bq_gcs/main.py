@@ -1,23 +1,16 @@
-import os
-import csv
-from flask import Flask, request
-from google.cloud import storage, bigquery
+from flask import request
 
-app = Flask(__name__)
-
-@app.route("/")
-def hello():
-    return "Hello Cloud Run!"
-
-# Eventarc will POST the event here
 @app.route("/process", methods=["POST"])
 def process():
     event = request.get_json()
     if not event:
         return "No event received", 400
 
-    bucket_name = event['bucket']
-    file_name = event['name']
+    bucket_name = event.get('bucket')
+    file_name = event.get('name')
+
+    if not bucket_name or not file_name:
+        return "Invalid event payload", 400
 
     if not file_name.startswith("input/"):
         return "Not an input file", 200
@@ -52,7 +45,3 @@ def process():
         out_blob.upload_from_filename(tmp_file)
 
     return "File processed", 200
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
