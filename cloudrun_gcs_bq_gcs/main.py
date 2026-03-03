@@ -1,6 +1,17 @@
 import os
 from google.cloud import storage, bigquery
 import csv
+from flask import Flask
+app = Flask(__name__)
+
+@app.route("/")
+def hello():
+    return "Hello Cloud Run!"
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)
+
 
 def process_file(event, context):
     bucket_name = event['bucket']
