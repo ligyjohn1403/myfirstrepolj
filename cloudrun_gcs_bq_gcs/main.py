@@ -1,94 +1,67 @@
 import os
 import csv
 import logging
-from flask import Flask, request, jsonify
-from google.cloud import storage
-from google.cloud import bigquery
-
-# Configure logging (Cloud Run reads stdout/stderr)
-logging.basicConfig(level=logging.INFO)
+from flask import Flask, request
+from google.cloud import storage, bigquery
 
 app = Flask(__name__)
 
-# Initialize clients once (faster cold start)
-storage_client = storage.Client()
-bq_client = bigquery.Client()
-
-
-@app.route("/", methods=["GET"])
-def health():
-    return "Service is running", 200
-
-
 @app.route("/", methods=["POST"])
 def process_event():
-    """
-    Handles Eventarc CloudEvent for GCS object finalized.
-    """
-    try:
-        envelope = request.get_json()
+    envelope = request.get_json()
 
-        if not envelope:
-            logging.error("No event received")
-            return "Bad Request", 400
+    if not envelope:
+        logging.error("No event received")
+        return ("Bad Request", 400)
 
-        # Eventarc CloudEvent structure
-        data = envelope.get("data", {})
-        bucket_name = data.get("bucket")
-        file_name = data.get("name")
+    if "data" not in envelope:
+        logging.error("Invalid event payload")
+        return ("Bad Request", 400)
 
-        if not bucket_name or not file_name:
-            logging.error("Invalid event payload")
-            return "Bad Request", 400
+    event = envelope["data"]
 
-        if not file_name.startswith("input/"):
-            logging.info("File not in input/ folder. Skipping.")
-            return "Ignored", 200
+    bucket_name = event.get("bucket")
+    file_name = event.get("name")
 
-        logging.info(f"Processing file {file_name} from bucket {bucket_name}")
+    if not bucket_name or not file_name:
+        logging.error("Missing bucket or file name")
+        return ("Bad Request", 400)
 
-        bucket = storage_client.bucket(bucket_name)
-        blob = bucket.blob(file_name)
+    # Filter only input folder
+    if not file_name.startswith("input/"):
+        logging.info(f"Ignoring file: {file_name}")
+        return ("Ignored", 204)
 
-        sql = blob.download_as_text()
+    logging.info(f"Processing file {file_name} from bucket {bucket_name}")
 
-        query_job = bq_client.query(sql)
+    storage_client = storage.Client()
+    bq_client = bigquery.Client()
 
-        chunk_size = 60000
-        row_iterator = query_job.result(page_size=chunk_size)
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(file_name)
 
-        file_index = 0
-        rows_buffer = []
+    sql = blob.download_as_text()
 
-        for row in row_iterator:
-            rows_buffer.append(row)
+    job = bq_client.query(sql)
+    results = job.result()
 
-            if len(rows_buffer) >= chunk_size:
-                write_chunk(bucket, rows_buffer, row_iterator.schema, file_index)
-                rows_buffer = []
-                file_index += 1
+    rows = list(results)
+    chunk_size = 60000
 
-        if rows_buffer:
-            write_chunk(bucket, rows_buffer, row_iterator.schema, file_index)
+    for i in range(0, len(rows), chunk_size):
+        chunk = rows[i:i+chunk_size]
+        output_file = f"output/result_{i//chunk_size}.csv"
+        out_blob = bucket.blob(output_file)
 
-        logging.info("Processing completed successfully")
-        return "Success", 200
+        tmp_file = f"/tmp/result_{i//chunk_size}.csv"
 
-    except Exception as e:
-        logging.exception("Processing failed")
-        return jsonify({"error": str(e)}), 500
+        with open(tmp_file, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow([field.name for field in results.schema])
+            for row in chunk:
+                writer.writerow(list(row.values()))
 
+        out_blob.upload_from_filename(tmp_file)
 
-def write_chunk(bucket, rows, schema, index):
-    output_file = f"output/result_{index}.csv"
-    tmp_file = f"/tmp/result_{index}.csv"
-
-    with open(tmp_file, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow([field.name for field in schema])
-        for row in rows:
-            writer.writerow(list(row.values()))
-
-    bucket.blob(output_file).upload_from_filename(tmp_file)
-
-    logging.info(f"Uploaded {output_file}")
+    logging.info("Processing complete")
+    return ("Success", 200)
