@@ -1,0 +1,13 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/cloudrun-bq-service', '.']
+
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/cloudrun-bq-service']
+
+- name: 'gcr.io/google-cloud-sdk:latest'
+  args: ['gcloud', 'run', 'deploy', 'cloudrun-bq-service',
+         '--image', 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/cloudrun-bq-service',
+         '--region', 'us-central1',
+         '--service-account', 'cloudrun-bq-sa@project-9d5f3da8-f37e-45f7-b07.iam.gserviceaccount.com',
+         '--allow-unauthenticated']
