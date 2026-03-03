@@ -1,3 +1,4 @@
+logsBucket: gs://lj-cloudbuild-logs/
 options:
   logging: CLOUD_LOGGING_ONLY
 
