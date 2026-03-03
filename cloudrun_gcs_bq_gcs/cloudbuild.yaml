@@ -6,7 +6,7 @@ steps:
   args:
     - build
     - -t
-    - us-central1-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/cloudrun-bq-service:latest
+    - us-central1-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/cloudrun-bq-service:$SHORT_SHA
     - -f
     - cloudrun_gcs_bq_gcs/Dockerfile
     - cloudrun_gcs_bq_gcs
@@ -14,7 +14,7 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args:
     - push
-    - us-central1-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/cloudrun-bq-service:latest
+    - us-central1-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/cloudrun-bq-service:$SHORT_SHA
 
 images:
-- us-central1-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/cloudrun-bq-service:latest
+- us-central1-docker.pkg.dev/${PROJECT_ID}/cloud-run-source-deploy/cloudrun-bq-service:$SHORT_SHA
