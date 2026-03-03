@@ -49,7 +49,7 @@ def process_event():
         results = job.result()
 
         rows = list(results)
-        chunk_size = 60000
+        chunk_size = 60
 
         for i in range(0, len(rows), chunk_size):
             chunk = rows[i:i+chunk_size]
