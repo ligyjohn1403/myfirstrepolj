@@ -236,4 +236,6 @@ gcloud projects add-iam-policy-binding project-9d5f3da8-f37e-45f7-b07 \
 ---
 
 ## 📂 Repository Structure
+<img width="178" height="258" alt="image" src="https://github.com/user-attachments/assets/fe164fc4-469c-4372-8ca3-7ed1ceaa11d6" />
+
 
