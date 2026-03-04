@@ -30,11 +30,21 @@ BigQuery Query Execution
 
 ## Pre-requisite 
 1)Enabling all API
-eventarc-gcloud services enable eventarc.googleapis.com
-gcloud services enable \
+  gcloud services enable \
+  run.googleapis.com \
+  cloudbuild.googleapis.com \
   eventarc.googleapis.com \
-  pubsub.googleapis.com \
-  storage.googleapis.com
+  artifactregistry.googleapis.com \
+  storage.googleapis.com \
+  bigquery.googleapis.com
+setting upteh variables:
+gcloud config set project project-9d5f3da8-f37e-45f7-b07
+export PROJECT_ID=$(gcloud config get-value project)
+export PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID \
+  --format="value(projectNumber)")
+export REGION="us-central1"
+export SERVICE_NAME="bq-gcs-export"
+export BUCKET_NAME="lj_cloudrun_poc"
 
 2)Setup service accounts
   Grant access default service account with 967826726064-compute@developer.gserviceaccount.com
@@ -94,6 +104,7 @@ Logs Writer
 Storage Admin
 
 
+  gcloud artifacts docker images list us-central1-docker.pkg.dev/project-9d5f3da8-f37e-45f7-b07/cloud-run-source-deploy
 
 **4.Deploying the cloud run:**
   gcloud run deploy cloudrun-bq-service \
@@ -121,6 +132,8 @@ Storage Admin
   --member="serviceAccount:PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
   --role="roles/iam.serviceAccountUser"
 Incase of error check in cloud run logs to troubleshoot.
+
+
 
 **5.Eventarch creation:**
 Role behind scene:
